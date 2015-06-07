@@ -17,6 +17,14 @@ using std::string;
 using std::out_of_range;
 using hat_trie::impl::string_bucket;
 
+struct some_type
+{
+    explicit some_type(bool &alive) : alive(alive)
+                        { alive = true; }
+    ~some_type(void)    { alive = false; }
+    bool &alive;
+};
+
 void construct_string_bucket(string_bucket<uint32_t> &sb)
 {
     sb.push_back("cat", 1);
@@ -133,4 +141,25 @@ TEST(StringBucket, ClearBucket)
     EXPECT_TRUE(sb.empty());
     EXPECT_EQ(0, sb.size());
     EXPECT_EQ(0, sb.bytes_count());
+}
+
+TEST(StringBucket, ConstructAndDestructObject)
+{
+    bool alive = false;
+    {
+        string_bucket<some_type> sb;
+        sb.emplace_back("key", alive);
+        EXPECT_TRUE(alive);
+    }
+
+    EXPECT_FALSE(alive);
+}
+
+TEST(StringBucket, DestructObjectWhenErasingElement)
+{
+    string_bucket<some_type> sb;
+    bool alive = false;
+    auto it = sb.emplace_back("key", alive);
+    sb.erase(it);
+    EXPECT_FALSE(alive);
 }
