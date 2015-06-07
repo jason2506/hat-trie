@@ -278,6 +278,7 @@ void string_bucket<T>::clear(void)
         ::std::free(s_);
     }
 
+    num_strings_ = num_bytes_ = 0;
     s_ = nullptr;
 }
 

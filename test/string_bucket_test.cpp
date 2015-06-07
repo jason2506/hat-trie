@@ -123,3 +123,14 @@ TEST(StringBucket, EraseElement)
     check_key_and_value(++it, "bird", 7);
     EXPECT_EQ(sb.end(), ++it);
 }
+
+TEST(StringBucket, ClearBucket)
+{
+    string_bucket<uint32_t> sb;
+    construct_string_bucket(sb);
+
+    sb.clear();
+    EXPECT_TRUE(sb.empty());
+    EXPECT_EQ(0, sb.size());
+    EXPECT_EQ(0, sb.bytes_count());
+}
