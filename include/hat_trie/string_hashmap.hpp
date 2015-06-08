@@ -57,6 +57,7 @@ public: // Public Method(s)
     size_type bucket(key_type const &key) const;
 
     ::std::pair<iterator, bool> insert(key_type const &key, mapped_type const &val);
+    ::std::pair<iterator, bool> insert(key_type const &key, mapped_type &&val);
     template <typename ... Args>
     ::std::pair<iterator, bool> emplace(key_type const &key, Args&&... args);
     iterator erase(const_iterator const &it);
@@ -210,6 +211,12 @@ template <typename T, ::std::size_t N>
 ::std::pair<typename string_hashmap<T, N>::iterator, bool> string_hashmap<T, N>::insert(key_type const &key, mapped_type const &val)
 {
     return emplace(key, val);
+}
+
+template <typename T, ::std::size_t N>
+::std::pair<typename string_hashmap<T, N>::iterator, bool> string_hashmap<T, N>::insert(key_type const &key, mapped_type &&val)
+{
+    return emplace(key, ::std::move(val));
 }
 
 template <typename T, ::std::size_t N>
