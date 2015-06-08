@@ -163,3 +163,7 @@ TEST(StringBucket, DestructObjectWhenErasingElement)
     sb.erase(it);
     EXPECT_FALSE(alive);
 }
+
+// TODO: Add some test cases for inserting/erasing objects of non-trivially
+//       copyable type. We need to check whether their copy/move constructor
+//       is called when re-allocating memory.

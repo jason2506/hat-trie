@@ -9,7 +9,9 @@
 #ifndef HAT_TRIE_STRING_BUCKET_HPP_
 #define HAT_TRIE_STRING_BUCKET_HPP_
 
+#include <new>
 #include <stdexcept>
+#include <type_traits>
 
 #include "length_encoded_string.hpp"
 
@@ -71,6 +73,9 @@ public: // Public Method(s)
     mapped_type &operator[](key_type const &key);
     mapped_type const &operator[](key_type const &key) const;
     string_bucket &operator=(string_bucket const &sb) = delete;
+
+private: // Private Method(s)
+    void move_elements(char *dist, char *src, size_type n);
 
 private: // Private Property(ies)
     size_type num_strings_;
@@ -220,17 +225,20 @@ template <typename... Args>
 typename string_bucket<T>::iterator string_bucket<T>::emplace_back(key_type const &key, Args&&... args)
 {
     auto n = key.size();
-    auto old_size = num_bytes_;
-    num_bytes_ += prefix_size(n) + n + sizeof(mapped_type);
-    s_ = static_cast<char *>(::std::realloc(s_, num_bytes_));
-    if (!s_) { throw ::std::bad_alloc(); }
+    auto new_size = num_bytes_ + prefix_size(n) + n + sizeof(mapped_type);
+    auto new_s = static_cast<char *>(::operator new(new_size));
+    move_elements(new_s, s_, num_bytes_);
+    ::operator delete(s_);
+    s_ = new_s;
 
-    encode_string(s_ + old_size, key);
+    encode_string(s_ + num_bytes_, key);
     ++num_strings_;
 
-    iterator it(s_ + old_size);
+    iterator it(s_ + num_bytes_);
     auto ptr = &(it->get_value());
     new(ptr) mapped_type(::std::forward<Args>(args)...);
+
+    num_bytes_ = new_size;
     return it;
 }
 
@@ -242,21 +250,26 @@ inline typename string_bucket<T>::iterator string_bucket<T>::erase(const_iterato
     val.~mapped_type();
 
     auto offset = it.raw_distance(begin());
-    auto kv_size = key.prefix_size() + key.size() + sizeof(mapped_type);
-    ::std::copy(s_ + offset + kv_size, s_ + num_bytes_, s_ + offset);
-    num_bytes_ -= kv_size;
-    --num_strings_;
-
-    if (num_strings_ > 0)
+    if (num_strings_ > 1)
     {
-        assert(num_bytes_ > 0);
-        s_ = static_cast<char *>(::std::realloc(s_, num_bytes_));
-        if (!s_) { throw ::std::bad_alloc(); }
+        auto kv_size = key.prefix_size() + key.size() + sizeof(mapped_type);
+        auto new_s = static_cast<char *>(::operator new(num_bytes_ - kv_size));
+        move_elements(new_s, s_, offset);
+        move_elements(new_s + offset, s_ + offset + kv_size,
+                      num_bytes_ - offset - kv_size);
+
+        ::operator delete(s_);
+        s_ = new_s;
+
+        num_bytes_ -= kv_size;
+        --num_strings_;
     }
     else
     {
-        assert(offset == 0 && num_bytes_ == 0);
-        ::std::free(s_);
+        assert(offset == 0);
+
+        ::operator delete(s_);
+        num_bytes_ = num_strings_ = 0;
         s_ = nullptr;
     }
 
@@ -275,7 +288,7 @@ void string_bucket<T>::clear(void)
             ++it;
         }
 
-        ::std::free(s_);
+        ::operator delete(s_);
     }
 
     num_strings_ = num_bytes_ = 0;
@@ -339,6 +352,27 @@ inline typename string_bucket<T>::mapped_type const &string_bucket<T>::operator[
 {
     auto it = find(key);
     return it->get_value();
+}
+
+template <typename T>
+void string_bucket<T>::move_elements(char *dist, char *src, size_type n)
+{
+    ::std::memcpy(dist, src, n);
+    // if (!is_trivially_copyable(T))
+    if (!__is_trivially_copyable(T)) // TODO: portable?
+    {
+        auto ptr = dist;
+        iterator it(src), end_it(src + n);
+        while (it != end_it)
+        {
+            ptr += it->get_key().bytes_count();
+            new(ptr) mapped_type(::std::move_if_noexcept(it->get_value()));
+            it->get_value().~mapped_type();
+
+            ptr += sizeof(mapped_type);
+            ++it;
+        }
+    }
 }
 
 /************************************************
