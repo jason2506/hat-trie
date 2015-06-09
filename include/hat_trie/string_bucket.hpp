@@ -386,8 +386,7 @@ template <typename T>
 void string_bucket<T>::move_elements(char *dist, char *src, size_type n)
 {
     ::std::memcpy(dist, src, n);
-    // if (!is_trivially_copyable(T))
-    if (!__is_trivially_copyable(T)) // TODO: portable?
+    if (!::std::is_trivially_copyable<T>::value)
     {
         auto ptr = dist;
         iterator it(src), end_it(src + n);
