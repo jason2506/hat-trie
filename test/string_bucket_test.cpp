@@ -48,6 +48,7 @@ TEST(StringBucket, CreateEmptyBucket)
     EXPECT_TRUE(sb.empty());
     EXPECT_EQ(0, sb.size());
     EXPECT_EQ(0, sb.bytes_count());
+    EXPECT_EQ(sb.end(), sb.begin());
 }
 
 TEST(StringBucket, InsertKeyAndValue)
@@ -126,6 +127,8 @@ TEST(StringBucket, EraseElement)
     auto next_it = sb.erase(it3);
     EXPECT_EQ(sb.end(), next_it);
 
+    EXPECT_EQ(2, sb.size());
+
     auto it = sb.begin();
     check_key_and_value(it, "elephant", 3);
     check_key_and_value(++it, "bird", 7);
@@ -141,6 +144,7 @@ TEST(StringBucket, ClearBucket)
     EXPECT_TRUE(sb.empty());
     EXPECT_EQ(0, sb.size());
     EXPECT_EQ(0, sb.bytes_count());
+    EXPECT_EQ(sb.end(), sb.begin());
 }
 
 TEST(StringBucket, ConstructAndDestructObject)
