@@ -351,17 +351,10 @@ template <typename T, ::std::size_t N>
 template <bool B>
 inline string_hashmap<T, N>::kv_iterator<B> &string_hashmap<T, N>::kv_iterator<B>::operator++(void)
 {
-    if (bk_it_ != bk_end_)
+    if (++bk_it_ == bk_end_)
     {
-        ++bk_it_;
-    }
-    else if (++bks_it_ != bks_end_)
-    {
+        ++bks_it_;
         move_next();
-    }
-    else
-    {
-        bk_it_ = bk_end_ = bucket_iterator();
     }
 
     return *this;
