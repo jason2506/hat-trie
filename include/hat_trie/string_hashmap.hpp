@@ -242,7 +242,7 @@ inline typename string_hashmap<T, N>::iterator string_hashmap<T, N>::erase(const
     auto &bk = buckets_[bk_id];
     auto result_it = bk.erase(it.bk_it_);
     return (result_it == bk.end())
-        ? iterator(buckets_.begin() + bk_id, buckets_.end())
+        ? iterator(buckets_.begin() + bk_id + 1, buckets_.end())
         : make_iterator(bk_id, result_it);
 }
 
