@@ -259,16 +259,18 @@ template <typename T, ::std::size_t N>
 typename string_hashmap<T, N>::iterator string_hashmap<T, N>::find(key_type const &key)
 {
     auto bk_id = bucket(key);
-    auto it = buckets_[bk_id].find(key);
-    return make_iterator(bk_id, it);
+    auto &bk = buckets_[bk_id];
+    auto it = bk.find(key);
+    return it != bk.end() ? make_iterator(bk_id, it) : end();
 }
 
 template <typename T, ::std::size_t N>
 typename string_hashmap<T, N>::const_iterator string_hashmap<T, N>::find(key_type const &key) const
 {
     auto bk_id = bucket(key);
-    auto it = buckets_[bk_id].find(key);
-    return make_iterator(bk_id, it);
+    auto &bk = buckets_[bk_id];
+    auto it = bk.find(key);
+    return it != bk.end() ? make_iterator(bk_id, it) : end();
 }
 
 template <typename T, ::std::size_t N>
