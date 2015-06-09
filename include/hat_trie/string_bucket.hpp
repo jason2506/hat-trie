@@ -45,6 +45,7 @@ public: // Public Type(s)
 public: // Public Method(s)
     string_bucket(void);
     string_bucket(string_bucket const &sb) = delete;
+    string_bucket(string_bucket &&sb);
     ~string_bucket(void);
 
     iterator begin(void);
@@ -73,6 +74,7 @@ public: // Public Method(s)
     mapped_type &operator[](key_type const &key);
     mapped_type const &operator[](key_type const &key) const;
     string_bucket &operator=(string_bucket const &sb) = delete;
+    string_bucket &operator=(string_bucket &&sb);
 
 private: // Private Method(s)
     void move_elements(char *dist, char *src, size_type n);
@@ -146,6 +148,14 @@ inline string_bucket<T>::string_bucket(void)
     : num_strings_(0), num_bytes_(0), s_(nullptr)
 {
     // do nothing
+}
+
+template <typename T>
+inline string_bucket<T>::string_bucket(string_bucket &&sb)
+    : num_strings_(sb.num_strings_), num_bytes_(sb.num_bytes_), s_(sb.s_)
+{
+    sb.num_strings_ = sb.num_bytes_ = 0;
+    sb.s_ = nullptr;
 }
 
 template <typename T>
@@ -352,6 +362,24 @@ inline typename string_bucket<T>::mapped_type const &string_bucket<T>::operator[
 {
     auto it = find(key);
     return it->get_value();
+}
+
+template <typename T>
+inline string_bucket<T> &string_bucket<T>::operator=(string_bucket &&sb)
+{
+    if (this != &sb)
+    {
+        clear();
+
+        num_strings_ = sb.num_strings_;
+        num_bytes_ = sb.num_bytes_;
+        s_ = sb.s_;
+
+        sb.num_strings_ = sb.num_bytes_ = 0;
+        sb.s_ = nullptr;
+    }
+
+    return *this;
 }
 
 template <typename T>
