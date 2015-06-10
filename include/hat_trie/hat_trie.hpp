@@ -12,6 +12,7 @@
 #include <cassert>
 #include <array>
 #include <memory>
+#include <utility>
 
 #include "string_hashmap.hpp"
 
@@ -29,6 +30,7 @@ public: // Private Type(s)
     typedef impl::string_hashmap<T, N> hashmap_type;
 
 public: // Public Type(s)
+    typedef typename hashmap_type::iterator iterator;
     typedef typename hashmap_type::size_type size_type;
     typedef typename hashmap_type::key_type key_type;
     typedef typename hashmap_type::raw_key_type raw_key_type;
@@ -41,6 +43,11 @@ public: // Public Method(s)
 
     bool empty(void) const;
     size_type size(void) const;
+
+    ::std::pair<iterator, bool> insert(key_type const &key, mapped_type const &val);
+    ::std::pair<iterator, bool> insert(key_type const &key, mapped_type &&val);
+    template <typename ... Args>
+    ::std::pair<iterator, bool> emplace(key_type const &key, Args&&... args);
 
 private: // Private Type(s)
     class node;
@@ -109,6 +116,9 @@ public: // Public Method(s)
     explicit leaf_node(bool is_pure);
     leaf_node(bool is_pure, char l, char u);
 
+    hashmap_type &get_hashmap(void);
+    hashmap_type const &get_hashmap(void) const;
+
 private: // Private Property(ies)
     hashmap_type hashmap_;
     char l_, u_;
@@ -151,6 +161,32 @@ template <typename T, ::std::size_t N, ::std::size_t M>
 inline typename hat_trie<T, N, M>::size_type hat_trie<T, N, M>::size(void) const
 {
     return n_;
+}
+
+template <typename T, ::std::size_t N, ::std::size_t M>
+::std::pair<typename hat_trie<T, N, M>::iterator, bool> hat_trie<T, N, M>::insert(key_type const &key, mapped_type const &val)
+{
+    return emplace(key, val);
+}
+
+template <typename T, ::std::size_t N, ::std::size_t M>
+::std::pair<typename hat_trie<T, N, M>::iterator, bool> hat_trie<T, N, M>::insert(key_type const &key, mapped_type &&val)
+{
+    return emplace(key, ::std::move(val));
+}
+
+template <typename T, ::std::size_t N, ::std::size_t M>
+template <typename... Args>
+::std::pair<typename hat_trie<T, N, M>::iterator, bool> hat_trie<T, N, M>::emplace(key_type const &key, Args&&... args)
+{
+    if (!root_) { root_.reset(new leaf_node(true)); }
+
+    auto &node = root_->as_leaf_node();
+    auto &hashmap = node.get_hashmap();
+    auto result = hashmap.emplace(key, ::std::forward<Args>(args)...);
+    if (result.second) { ++n_; }
+
+    return result;
 }
 
 /************************************************
@@ -238,6 +274,18 @@ inline hat_trie<T, N, M>::leaf_node::leaf_node(bool is_pure, char l, char u)
     : node(is_pure ? node::PURE_BUCKET : node::HYBRID_BUCKET), l_(l), u_(u)
 {
     // do nothing
+}
+
+template <typename T, ::std::size_t N, ::std::size_t M>
+inline typename hat_trie<T, N, M>::hashmap_type &hat_trie<T, N, M>::leaf_node::get_hashmap(void)
+{
+    return hashmap_;
+}
+
+template <typename T, ::std::size_t N, ::std::size_t M>
+inline typename hat_trie<T, N, M>::hashmap_type const &hat_trie<T, N, M>::leaf_node::get_hashmap(void) const
+{
+    return hashmap_;
 }
 
 /************************************************
