@@ -39,6 +39,9 @@ public: // Public Method(s)
     hat_trie(void);
     ~hat_trie(void);
 
+    bool empty(void) const;
+    size_type size(void) const;
+
 private: // Private Type(s)
     class node;
     class internal_node;
@@ -51,6 +54,7 @@ private: // Private Property(ies)
     static constexpr ::std::size_t NUM_CHILDREN = NUM_CHARS + 1;
 
     node_ptr root_;
+    size_type n_;
 }; // class hat_trie<T, N, M>
 
 /************************************************
@@ -126,6 +130,7 @@ struct hat_trie<T, N, M>::node_deleter
 
 template <typename T, ::std::size_t N, ::std::size_t M>
 inline hat_trie<T, N, M>::hat_trie(void)
+    : n_(0)
 {
     // do nothing
 }
@@ -134,6 +139,18 @@ template <typename T, ::std::size_t N, ::std::size_t M>
 inline hat_trie<T, N, M>::~hat_trie(void)
 {
     // do nothing
+}
+
+template <typename T, ::std::size_t N, ::std::size_t M>
+inline bool hat_trie<T, N, M>::empty(void) const
+{
+    return size() == 0;
+}
+
+template <typename T, ::std::size_t N, ::std::size_t M>
+inline typename hat_trie<T, N, M>::size_type hat_trie<T, N, M>::size(void) const
+{
+    return n_;
 }
 
 /************************************************
