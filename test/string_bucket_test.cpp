@@ -25,6 +25,39 @@ struct some_type
     bool &alive;
 };
 
+struct spy
+{
+    size_t move_count, copy_count;
+};
+
+struct some_type_with_non_trival_copy_constructor
+{
+    explicit some_type_with_non_trival_copy_constructor(spy &c) : c(c)
+        { c.move_count = c.copy_count = 0; }
+    some_type_with_non_trival_copy_constructor(
+            some_type_with_non_trival_copy_constructor const &obj) : c(obj.c)
+        { c.copy_count++; }
+    some_type_with_non_trival_copy_constructor(
+            some_type_with_non_trival_copy_constructor &&obj) : c(obj.c)
+        { c.move_count++; }
+
+    spy &c;
+};
+
+struct some_type_with_noexcept_move_constructor
+{
+    explicit some_type_with_noexcept_move_constructor(spy &c) : c(c)
+        { c.move_count = c.copy_count = 0; }
+    some_type_with_noexcept_move_constructor(
+            some_type_with_noexcept_move_constructor const &obj) : c(obj.c)
+        { c.copy_count++; }
+    some_type_with_noexcept_move_constructor(
+            some_type_with_noexcept_move_constructor &&obj) noexcept : c(obj.c)
+        { c.move_count++; }
+
+    spy &c;
+};
+
 void construct_string_bucket(string_bucket<uint32_t> &sb)
 {
     sb.push_back("cat", 1);
@@ -168,6 +201,41 @@ TEST(StringBucket, DestructObjectWhenErasingElement)
     EXPECT_FALSE(alive);
 }
 
-// TODO: Add some test cases for inserting/erasing objects of non-trivially
-//       copyable type. We need to check whether their copy/move constructor
-//       is called when re-allocating memory.
+TEST(StringBucket, InsertRValueReference)
+{
+    string_bucket<some_type_with_non_trival_copy_constructor> sb;
+    spy c;
+    sb.push_back("key", some_type_with_non_trival_copy_constructor(c));
+    EXPECT_EQ(0, c.copy_count);
+    EXPECT_EQ(1, c.move_count);
+}
+
+TEST(StringBucket, InsertLValueReference)
+{
+    string_bucket<some_type_with_non_trival_copy_constructor> sb;
+    spy c;
+    some_type_with_non_trival_copy_constructor obj(c);
+    sb.push_back("key", obj);
+    EXPECT_EQ(1, c.copy_count);
+    EXPECT_EQ(0, c.move_count);
+}
+
+TEST(StringBucket, CopyObjectWhenReallocatingMemory)
+{
+    string_bucket<some_type_with_non_trival_copy_constructor> sb;
+    spy c1, c2;
+    sb.emplace_back("key1", c1);
+    sb.emplace_back("key2", c2);
+    EXPECT_EQ(1, c1.copy_count);
+    EXPECT_EQ(0, c1.move_count);
+}
+
+TEST(StringBucket, MoveObjectWhenReallocatingMemory)
+{
+    string_bucket<some_type_with_noexcept_move_constructor> sb;
+    spy c1, c2;
+    sb.emplace_back("key1", c1);
+    sb.emplace_back("key2", c2);
+    EXPECT_EQ(0, c1.copy_count);
+    EXPECT_EQ(1, c1.move_count);
+}
